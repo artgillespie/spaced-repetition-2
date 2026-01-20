@@ -186,6 +186,9 @@ const icons = {
   cards: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="64" height="64"><rect x="2" y="4" width="20" height="16" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>`,
   upload: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>`,
   user: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`,
+  chevronRight: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6"></polyline></svg>`,
+  chevronLeft: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6"></polyline></svg>`,
+  chevronDown: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9"></polyline></svg>`,
   github: `<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>`,
   google: `<svg viewBox="0 0 24 24" width="20" height="20"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>`,
 };
@@ -482,6 +485,24 @@ route('/deck/:id', async (params) => {
     return;
   }
 
+  // Initialize deck view state
+  window.deckViewState = {
+    deck,
+    cards,
+    page: 1,
+    perPage: 15,
+    expandedCard: null,
+  };
+
+  renderDeckView();
+});
+
+function renderDeckView() {
+  const { deck, cards, page, perPage, expandedCard } = window.deckViewState;
+  const totalPages = Math.ceil(cards.length / perPage);
+  const startIdx = (page - 1) * perPage;
+  const pageCards = cards.slice(startIdx, startIdx + perPage);
+
   app.innerHTML = `
     ${renderHeader()}
     <main class="main">
@@ -521,28 +542,101 @@ route('/deck/:id', async (params) => {
           </div>
         ` : `
           <div class="card-list">
-            ${cards.map(card => `
-              <div class="card-item">
-                <div class="card-item-content">
-                  <div class="card-item-front">${escapeHtml(truncate(card.front, 100))}</div>
-                  <div class="card-item-back">${escapeHtml(truncate(card.back, 100))}</div>
+            ${pageCards.map(card => `
+              <div class="card-item ${expandedCard === card.id ? 'card-item-expanded' : ''}" data-card-id="${card.id}">
+                <div class="card-item-main" onclick="toggleCardExpand(${card.id})">
+                  <span class="card-item-expand-icon ${expandedCard === card.id ? 'expanded' : ''}">${icons.chevronRight}</span>
+                  <div class="card-item-front">${escapeHtml(truncate(card.front, 80))}</div>
                 </div>
+                ${expandedCard === card.id ? `
+                  <div class="card-item-answer">
+                    <div class="card-item-back">${escapeHtml(card.back)}</div>
+                  </div>
+                ` : ''}
                 <div class="card-item-actions">
-                  <button class="btn btn-ghost btn-sm btn-icon" onclick="showEditCardModal(${card.id}, ${JSON.stringify(escapeHtml(card.front)).replace(/"/g, '&quot;')}, ${JSON.stringify(escapeHtml(card.back)).replace(/"/g, '&quot;')})">
+                  <button class="btn btn-ghost btn-sm btn-icon" onclick="event.stopPropagation(); showEditCardModal(${card.id}, ${JSON.stringify(escapeHtml(card.front)).replace(/"/g, '&quot;')}, ${JSON.stringify(escapeHtml(card.back)).replace(/"/g, '&quot;')})">
                     ${icons.edit}
                   </button>
-                  <button class="btn btn-ghost btn-sm btn-icon" onclick="deleteCard(${card.id}, ${deck.id})">
+                  <button class="btn btn-ghost btn-sm btn-icon" onclick="event.stopPropagation(); deleteCard(${card.id}, ${deck.id})">
                     ${icons.trash}
                   </button>
                 </div>
               </div>
             `).join('')}
           </div>
+
+          ${totalPages > 1 ? `
+            <div class="pagination">
+              <button class="pagination-btn" onclick="goToPage(${page - 1})" ${page === 1 ? 'disabled' : ''}>
+                ${icons.chevronLeft} Prev
+              </button>
+              <div class="pagination-pages">
+                ${renderPaginationPages(page, totalPages)}
+              </div>
+              <button class="pagination-btn" onclick="goToPage(${page + 1})" ${page === totalPages ? 'disabled' : ''}>
+                Next ${icons.chevronRight}
+              </button>
+            </div>
+          ` : ''}
+
+          <div class="card-list-footer">
+            ${cards.length} card${cards.length !== 1 ? 's' : ''} total
+          </div>
         `}
       </div>
     </main>
   `;
-});
+}
+
+function renderPaginationPages(current, total) {
+  const pages = [];
+  const maxVisible = 5;
+
+  let start = Math.max(1, current - Math.floor(maxVisible / 2));
+  let end = Math.min(total, start + maxVisible - 1);
+
+  if (end - start + 1 < maxVisible) {
+    start = Math.max(1, end - maxVisible + 1);
+  }
+
+  if (start > 1) {
+    pages.push(`<button class="pagination-page" onclick="goToPage(1)">1</button>`);
+    if (start > 2) {
+      pages.push(`<span class="pagination-ellipsis">...</span>`);
+    }
+  }
+
+  for (let i = start; i <= end; i++) {
+    pages.push(`<button class="pagination-page ${i === current ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`);
+  }
+
+  if (end < total) {
+    if (end < total - 1) {
+      pages.push(`<span class="pagination-ellipsis">...</span>`);
+    }
+    pages.push(`<button class="pagination-page" onclick="goToPage(${total})">${total}</button>`);
+  }
+
+  return pages.join('');
+}
+
+window.goToPage = function(page) {
+  const { cards, perPage } = window.deckViewState;
+  const totalPages = Math.ceil(cards.length / perPage);
+  if (page < 1 || page > totalPages) return;
+  window.deckViewState.page = page;
+  window.deckViewState.expandedCard = null;
+  renderDeckView();
+};
+
+window.toggleCardExpand = function(cardId) {
+  if (window.deckViewState.expandedCard === cardId) {
+    window.deckViewState.expandedCard = null;
+  } else {
+    window.deckViewState.expandedCard = cardId;
+  }
+  renderDeckView();
+};
 
 route('/review/:deckId', async (params) => {
   if (!await checkAuth()) {
