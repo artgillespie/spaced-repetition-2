@@ -1,0 +1,15 @@
+{
+  "name": "spaced-repetition",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch src/server.ts",
+    "start": "bun run src/server.ts",
+    "test": "bun test",
+    "test:watch": "bun test --watch"
+  },
+  "dependencies": {
+    "hono": "^4.4.0",
+    "marked": "^12.0.0"
+  }
+}
