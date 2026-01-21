@@ -41,15 +41,14 @@ webhook.post("/github", async (c) => {
 
     console.log(`[Webhook] Git pull successful: ${pullOutput.trim()}`);
 
-    // Restart the service via sprite-env
-    const restart = Bun.spawn(["sprite-env", "services", "restart", "spaced-repetition"], {
-      stdout: "pipe",
-      stderr: "pipe",
+    // Restart the service via sprite-env (stop + start since restart may not work)
+    // Do this in background since stop will kill this process
+    Bun.spawn(["sh", "-c", "sleep 1 && sprite-env services stop spaced-repetition && sprite-env services start spaced-repetition"], {
+      stdout: "ignore",
+      stderr: "ignore",
     });
 
-    // Don't wait for restart to complete (it will kill this process)
-    // Just return success
-    console.log("[Webhook] Service restart triggered");
+    console.log("[Webhook] Service restart triggered (stop + start in background)");
 
     return c.json({
       success: true,
