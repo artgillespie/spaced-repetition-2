@@ -510,6 +510,17 @@ a:hover {
   margin-bottom: 0;
 }
 
+/* MathJax display math centering */
+.markdown-content mjx-container[display="true"] {
+  display: block !important;
+  text-align: center;
+  margin: 1rem 0;
+}
+
+.preview-content mjx-container[display="true"] {
+  margin: 0.75rem 0;
+}
+
 /* Card list */
 .card-list {
   display: flex;

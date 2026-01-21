@@ -271,6 +271,14 @@ function renderMarkdown(text) {
     .replace(/\n/g, '<br>');
 }
 
+// MathJax typesetting helper
+function typesetMath(elements) {
+  if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
+    const nodes = elements ? (Array.isArray(elements) ? elements : [elements]) : null;
+    MathJax.typesetPromise(nodes).catch((err) => console.warn('MathJax typeset error:', err));
+  }
+}
+
 // Routes
 route('/login', async () => {
   await loadProviders();
@@ -715,6 +723,9 @@ function renderReviewCard() {
       </div>
     </main>
   `;
+
+  // Typeset math in review card
+  typesetMath(document.querySelector('.review-card'));
 }
 
 function revealAnswer() {
@@ -907,7 +918,12 @@ function setupCardEditorPreview() {
 
   function updatePreview(textarea, preview) {
     const text = textarea.value;
+    // Clear MathJax cache for this element before re-rendering
+    if (typeof MathJax !== 'undefined' && MathJax.typesetClear) {
+      MathJax.typesetClear([preview]);
+    }
     preview.innerHTML = renderMarkdown(text);
+    typesetMath(preview);
   }
 
   // Initial render

@@ -35,20 +35,81 @@ bun run test:watch
 
 ### Frontend (Vanilla JS SPA)
 
-- **`public/index.html`** - Main HTML shell
+- **`public/index.html`** - Main HTML shell, loads CDN libraries (marked, MathJax)
 - **`public/js/app.js`** - SPA router, state management, all UI rendering
 - **`public/css/style.css`** - Styling with CSS variables for dark/light themes
 
+#### Key Frontend Functions
+
+| Function | Purpose |
+|----------|---------|
+| `navigate(path)` | Client-side navigation |
+| `renderMarkdown(text)` | Convert Markdown to HTML via `marked` library |
+| `typesetMath(elements)` | Trigger MathJax typesetting on elements |
+| `showModal(title, content, footer, options)` | Display modal dialog (`options.wide` for wider modals) |
+| `setupCardEditorPreview()` | Initialize live preview listeners for card editor |
+
+#### Frontend State
+
+- `state.user` - Current authenticated user
+- `state.token` - Auth token (persisted to localStorage)
+- `state.theme` - Theme preference ('light', 'dark', 'system')
+- `state.providers` - Available auth providers
+- `window.reviewState` - Review session state (cards, currentIndex, showingAnswer)
+- `window.deckViewState` - Deck view state (deck, cards, page, perPage, expandedCard)
+
 ### Database Schema
 
-```
-users (id, email, password_hash, name, created_at)
+```sql
+users (id, email, password_hash, name, avatar_url, created_at)
 oauth_accounts (id, user_id, provider, provider_id, created_at)
 sessions (id, user_id, token, expires_at, created_at)
 decks (id, user_id, name, description, created_at)
 cards (id, deck_id, front, back, ease_factor, interval, repetitions, due_date, created_at, updated_at)
 review_history (id, card_id, quality, ease_factor, interval, reviewed_at)
 ```
+
+### CDN Dependencies
+
+Loaded in `public/index.html`:
+- **marked** - Markdown parser (`https://cdn.jsdelivr.net/npm/marked/marked.min.js`)
+- **MathJax 3** - LaTeX math rendering (`https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js`)
+
+## Features
+
+### Card Content Formatting
+
+Cards support **Markdown** and **LaTeX math**:
+
+```markdown
+# Markdown Examples
+**bold**, *italic*, `code`, [links](url)
+- bullet lists
+1. numbered lists
+
+# Math Examples (LaTeX)
+Inline: $E = mc^2$ or \(E = mc^2\)
+Block:
+$$\int_0^\infty e^{-x^2} dx = \frac{\sqrt{\pi}}{2}$$
+```
+
+### Card Editor
+
+- Side-by-side Markdown editor with live preview
+- Real-time MathJax rendering in preview pane
+- Separate panels for front (question) and back (answer)
+
+### Deck View
+
+- Paginated card list (15 cards per page)
+- Compact rows with click-to-expand for answer preview
+- Edit/delete actions on hover
+
+### Review Mode
+
+- Shows front of card, click to reveal answer
+- Three response buttons: Again (failed), Hard, Good
+- Displays projected next review interval for each choice
 
 ## API Endpoints
 
@@ -64,15 +125,16 @@ review_history (id, card_id, quality, ease_factor, interval, reviewed_at)
 - `GET /api/auth/google/callback` - Google OAuth callback
 
 ### Decks (requires auth)
-- `GET /api/decks` - List user's decks
-- `POST /api/decks` - Create deck
+- `GET /api/decks` - List user's decks (includes `card_count`, `due_count`)
+- `POST /api/decks` - Create deck `{name, description?}`
 - `GET /api/decks/:id` - Get deck
 - `PUT /api/decks/:id` - Update deck
-- `DELETE /api/decks/:id` - Delete deck
+- `DELETE /api/decks/:id` - Delete deck and all its cards
 
 ### Cards (requires auth)
 - `GET /api/cards/deck/:deckId` - List cards in deck
-- `POST /api/cards/deck/:deckId` - Create card
+- `POST /api/cards/deck/:deckId` - Create card `{front, back}`
+- `POST /api/cards/deck/:deckId/import` - Import cards from Hashcards format
 - `GET /api/cards/:id` - Get card
 - `PUT /api/cards/:id` - Update card
 - `DELETE /api/cards/:id` - Delete card
@@ -162,7 +224,12 @@ Tests use in-memory SQLite databases for isolation.
 
 5. **OAuth flow** - Redirects to provider, callback creates/links user, redirects to `/?token=...` for frontend to capture.
 
-6. **Markdown support** - Card content supports Markdown via the `marked` library (loaded from CDN).
+6. **Markdown + Math rendering** - Card content uses `marked` for Markdown and MathJax 3 for LaTeX. MathJax config:
+   - Inline delimiters: `$...$` and `\(...\)`
+   - Block delimiters: `$$...$$` and `\[...\]`
+   - `typesetMath()` must be called after dynamic content updates
+
+7. **Modal system** - `showModal()` creates overlay with optional `{wide: true}` for card editor.
 
 ## Common Tasks
 
@@ -180,3 +247,18 @@ Tests use in-memory SQLite databases for isolation.
 2. Add routes in `src/routes/auth.ts` (follow GitHub/Google pattern)
 3. Update `GET /api/auth/providers` response
 4. Add button in frontend login/signup forms
+
+### Add new frontend route
+1. Add `route('/path', async (params) => { ... })` in `app.js`
+2. Use `navigate('/path')` for client-side navigation
+3. Ensure auth check with `if (!await checkAuth()) { navigate('/login', true); return; }`
+
+### Update card editor
+1. Modify `showCreateCardModal()` and `showEditCardModal()` in `app.js`
+2. Update `setupCardEditorPreview()` if adding new preview functionality
+3. Call `typesetMath()` after rendering any math content
+
+### Add CDN library
+1. Add `<script>` tag in `public/index.html` before `app.js`
+2. Check for library availability: `if (typeof LibraryName !== 'undefined')`
+3. Document in CDN Dependencies section above
