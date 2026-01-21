@@ -3,6 +3,9 @@ export const config = {
   port: parseInt(process.env.PORT || "3000"),
   baseUrl: process.env.BASE_URL || "http://localhost:3000",
 
+  // GitHub webhook secret for signature verification
+  githubWebhookSecret: process.env.GITHUB_WEBHOOK_SECRET || "",
+
   // OAuth providers (set these environment variables to enable)
   github: {
     clientId: process.env.GITHUB_CLIENT_ID || "",

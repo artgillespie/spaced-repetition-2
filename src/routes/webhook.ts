@@ -1,10 +1,68 @@
 import { Hono } from "hono";
+import { config } from "../config";
 
 const webhook = new Hono();
 
+// Verify GitHub webhook signature
+async function verifyGitHubSignature(payload: string, signature: string | undefined): Promise<boolean> {
+  if (!config.githubWebhookSecret) {
+    console.warn("[Webhook] No secret configured - skipping signature verification");
+    return true; // Allow if no secret configured (not recommended for production)
+  }
+
+  if (!signature) {
+    return false;
+  }
+
+  // GitHub sends signature as "sha256=<hex>"
+  const expectedPrefix = "sha256=";
+  if (!signature.startsWith(expectedPrefix)) {
+    return false;
+  }
+
+  const signatureHex = signature.slice(expectedPrefix.length);
+
+  // Compute HMAC-SHA256
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(config.githubWebhookSecret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+
+  const signatureBytes = await crypto.subtle.sign("HMAC", key, encoder.encode(payload));
+  const computedHex = Array.from(new Uint8Array(signatureBytes))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  // Constant-time comparison to prevent timing attacks
+  if (computedHex.length !== signatureHex.length) {
+    return false;
+  }
+
+  let result = 0;
+  for (let i = 0; i < computedHex.length; i++) {
+    result |= computedHex.charCodeAt(i) ^ signatureHex.charCodeAt(i);
+  }
+  return result === 0;
+}
+
 // GitHub webhook endpoint for auto-deploy
 webhook.post("/github", async (c) => {
+  const signature = c.req.header("X-Hub-Signature-256");
   const event = c.req.header("X-GitHub-Event");
+
+  // Get raw body for signature verification
+  const rawBody = await c.req.text();
+
+  // Verify signature
+  const isValid = await verifyGitHubSignature(rawBody, signature);
+  if (!isValid) {
+    console.warn("[Webhook] Invalid signature - request rejected");
+    return c.json({ error: "Invalid signature" }, 401);
+  }
 
   // Only handle push events
   if (event !== "push") {
@@ -12,7 +70,7 @@ webhook.post("/github", async (c) => {
   }
 
   try {
-    const payload = await c.req.json();
+    const payload = JSON.parse(rawBody);
     const branch = payload.ref?.replace("refs/heads/", "");
 
     // Only deploy from main branch
