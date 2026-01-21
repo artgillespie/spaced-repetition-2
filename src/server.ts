@@ -6,6 +6,7 @@ import { auth } from "./routes/auth";
 import { decks } from "./routes/decks";
 import { cards } from "./routes/cards";
 import { review } from "./routes/review";
+import { webhook } from "./routes/webhook";
 import { cleanupExpiredSessions } from "./auth";
 
 const app = new Hono();
@@ -18,6 +19,7 @@ app.route("/api/auth", auth);
 app.route("/api/decks", decks);
 app.route("/api/cards", cards);
 app.route("/api/review", review);
+app.route("/api/webhook", webhook);
 
 // Serve static files (CSS, JS, etc.)
 app.use("/css/*", serveStatic({ root: "/home/sprite/spaced-repetition/public" }));

@@ -145,6 +145,10 @@ $$\int_0^\infty e^{-x^2} dx = \frac{\sqrt{\pi}}{2}$$
 - `POST /api/review/submit` - Submit review `{cardId, quality: 0-5}`
 - `GET /api/review/history/:cardId` - Get review history
 
+### Webhook
+- `POST /api/webhook/github` - GitHub push webhook (auto-deploy)
+- `GET /api/webhook/health` - Health check
+
 ## SM-2 Algorithm
 
 Quality ratings:
@@ -262,3 +266,37 @@ Tests use in-memory SQLite databases for isolation.
 1. Add `<script>` tag in `public/index.html` before `app.js`
 2. Check for library availability: `if (typeof LibraryName !== 'undefined')`
 3. Document in CDN Dependencies section above
+
+## GitHub Webhook (Auto-Deploy)
+
+The app includes a webhook endpoint for automatic deployment when changes are pushed to GitHub.
+
+### Webhook Endpoints
+- `POST /api/webhook/github` - Receives GitHub push events, pulls changes, restarts service
+- `GET /api/webhook/health` - Health check endpoint
+
+### Setup in GitHub
+1. Go to your GitHub repo → Settings → Webhooks → Add webhook
+2. Configure:
+   - **Payload URL**: `https://spaced-repetition-blozs.sprites.app/api/webhook/github`
+   - **Content type**: `application/json`
+   - **Events**: Just the `push` event
+3. Save the webhook
+
+### How It Works
+1. Push to `main` branch triggers webhook
+2. Webhook handler runs `git pull` in the repo directory
+3. Service restarts automatically to load new code
+4. Non-main branches and non-push events are ignored
+
+### Testing Locally
+```bash
+# Health check
+curl http://localhost:3000/api/webhook/health
+
+# Simulate GitHub push (for testing)
+curl -X POST http://localhost:3000/api/webhook/github \
+  -H "Content-Type: application/json" \
+  -H "X-GitHub-Event: push" \
+  -d '{"ref":"refs/heads/main","head_commit":{"message":"test"}}'
+```
