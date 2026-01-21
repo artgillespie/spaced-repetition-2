@@ -146,7 +146,7 @@ function renderHeader(title = '') {
       <div class="container header-content">
         <a href="/" class="logo">
           <span class="logo-icon">SR</span>
-          <span>Spaced Repetition</span>
+          <span>Spaced Repetition!</span>
         </a>
         <div class="header-actions">
           <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
@@ -288,7 +288,7 @@ route('/login', async () => {
         <div class="auth-header">
           <div class="logo" style="justify-content: center; margin-bottom: 1rem;">
             <span class="logo-icon">SR</span>
-            <span>Spaced Repetition</span>
+            <span>Spaced Repetition!</span>
           </div>
           <p class="text-muted">Sign in to continue</p>
         </div>
@@ -354,7 +354,7 @@ route('/signup', async () => {
         <div class="auth-header">
           <div class="logo" style="justify-content: center; margin-bottom: 1rem;">
             <span class="logo-icon">SR</span>
-            <span>Spaced Repetition</span>
+            <span>Spaced Repetition!</span>
           </div>
           <p class="text-muted">Create your account</p>
         </div>
