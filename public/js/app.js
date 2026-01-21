@@ -793,12 +793,12 @@ function renderReviewComplete(deckId) {
 }
 
 // Modal helpers
-function showModal(title, content, footer) {
+function showModal(title, content, footer, options = {}) {
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.id = 'modal';
   modal.innerHTML = `
-    <div class="modal">
+    <div class="modal ${options.wide ? 'modal-wide' : ''}">
       <div class="modal-header">
         <h3>${title}</h3>
         <button class="modal-close" onclick="closeModal()">&times;</button>
@@ -898,6 +898,27 @@ window.deleteDeck = async function(id) {
   }
 };
 
+// Card editor preview
+function setupCardEditorPreview() {
+  const frontTextarea = document.getElementById('card-front');
+  const backTextarea = document.getElementById('card-back');
+  const frontPreview = document.getElementById('card-front-preview');
+  const backPreview = document.getElementById('card-back-preview');
+
+  function updatePreview(textarea, preview) {
+    const text = textarea.value;
+    preview.innerHTML = renderMarkdown(text);
+  }
+
+  // Initial render
+  updatePreview(frontTextarea, frontPreview);
+  updatePreview(backTextarea, backPreview);
+
+  // Live update on input
+  frontTextarea.addEventListener('input', () => updatePreview(frontTextarea, frontPreview));
+  backTextarea.addEventListener('input', () => updatePreview(backTextarea, backPreview));
+}
+
 // Card CRUD
 window.showCreateCardModal = function(deckId) {
   showModal('Add Card', `
@@ -905,18 +926,38 @@ window.showCreateCardModal = function(deckId) {
       <div class="card-editor">
         <div class="card-editor-side">
           <h4>Front (Question)</h4>
-          <textarea id="card-front" class="form-textarea" placeholder="Write your question in Markdown..." required></textarea>
+          <div class="editor-with-preview">
+            <div class="editor-pane">
+              <span class="editor-pane-label">Markdown</span>
+              <textarea id="card-front" class="form-textarea" placeholder="Write your question in Markdown..." required></textarea>
+            </div>
+            <div class="preview-pane">
+              <span class="preview-pane-label">Preview</span>
+              <div id="card-front-preview" class="preview-content markdown-content"></div>
+            </div>
+          </div>
         </div>
         <div class="card-editor-side">
           <h4>Back (Answer)</h4>
-          <textarea id="card-back" class="form-textarea" placeholder="Write your answer in Markdown..." required></textarea>
+          <div class="editor-with-preview">
+            <div class="editor-pane">
+              <span class="editor-pane-label">Markdown</span>
+              <textarea id="card-back" class="form-textarea" placeholder="Write your answer in Markdown..." required></textarea>
+            </div>
+            <div class="preview-pane">
+              <span class="preview-pane-label">Preview</span>
+              <div id="card-back-preview" class="preview-content markdown-content"></div>
+            </div>
+          </div>
         </div>
       </div>
     </form>
   `, `
     <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
     <button class="btn btn-primary" onclick="createCard(${deckId})">Add Card</button>
-  `);
+  `, { wide: true });
+
+  setupCardEditorPreview();
 };
 
 window.createCard = async function(deckId) {
@@ -948,18 +989,38 @@ window.showEditCardModal = function(id, front, back) {
       <div class="card-editor">
         <div class="card-editor-side">
           <h4>Front (Question)</h4>
-          <textarea id="card-front" class="form-textarea" required>${escapeHtml(frontText)}</textarea>
+          <div class="editor-with-preview">
+            <div class="editor-pane">
+              <span class="editor-pane-label">Markdown</span>
+              <textarea id="card-front" class="form-textarea" required>${escapeHtml(frontText)}</textarea>
+            </div>
+            <div class="preview-pane">
+              <span class="preview-pane-label">Preview</span>
+              <div id="card-front-preview" class="preview-content markdown-content"></div>
+            </div>
+          </div>
         </div>
         <div class="card-editor-side">
           <h4>Back (Answer)</h4>
-          <textarea id="card-back" class="form-textarea" required>${escapeHtml(backText)}</textarea>
+          <div class="editor-with-preview">
+            <div class="editor-pane">
+              <span class="editor-pane-label">Markdown</span>
+              <textarea id="card-back" class="form-textarea" required>${escapeHtml(backText)}</textarea>
+            </div>
+            <div class="preview-pane">
+              <span class="preview-pane-label">Preview</span>
+              <div id="card-back-preview" class="preview-content markdown-content"></div>
+            </div>
+          </div>
         </div>
       </div>
     </form>
   `, `
     <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
     <button class="btn btn-primary" onclick="updateCard(${id})">Save</button>
-  `);
+  `, { wide: true });
+
+  setupCardEditorPreview();
 };
 
 window.updateCard = async function(id) {

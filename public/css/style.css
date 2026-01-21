@@ -451,6 +451,65 @@ a:hover {
   color: var(--text-secondary);
 }
 
+.card-editor-side .editor-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.card-editor-side .editor-with-preview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+@media (max-width: 800px) {
+  .card-editor-side .editor-with-preview {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card-editor-side .editor-pane,
+.card-editor-side .preview-pane {
+  display: flex;
+  flex-direction: column;
+}
+
+.card-editor-side .editor-pane-label,
+.card-editor-side .preview-pane-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 0.375rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.card-editor-side .form-textarea {
+  min-height: 150px;
+  flex: 1;
+}
+
+.card-editor-side .preview-content {
+  min-height: 150px;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-tertiary);
+  overflow: auto;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.card-editor-side .preview-content:empty::before {
+  content: 'Preview will appear here...';
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.card-editor-side .preview-content.markdown-content p:last-child {
+  margin-bottom: 0;
+}
+
 /* Card list */
 .card-list {
   display: flex;
@@ -774,6 +833,10 @@ a:hover {
   max-width: 500px;
   max-height: 90vh;
   overflow: auto;
+}
+
+.modal-wide {
+  max-width: 900px;
 }
 
 .modal-header {
