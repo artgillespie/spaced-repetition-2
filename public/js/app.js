@@ -298,7 +298,7 @@ route('/login', async () => {
         <form id="login-form">
           <div class="form-group">
             <label class="form-label" for="email">Email</label>
-            <input type="email" id="email" class="form-input" required>
+            <input type="email" id="email" class="form-input" autocomplete="email" autocapitalize="none" inputmode="email" required>
           </div>
           <div class="form-group">
             <label class="form-label" for="password">Password</label>
@@ -368,7 +368,7 @@ route('/signup', async () => {
           </div>
           <div class="form-group">
             <label class="form-label" for="email">Email</label>
-            <input type="email" id="email" class="form-input" required>
+            <input type="email" id="email" class="form-input" autocomplete="email" autocapitalize="none" inputmode="email" required>
           </div>
           <div class="form-group">
             <label class="form-label" for="password">Password</label>
