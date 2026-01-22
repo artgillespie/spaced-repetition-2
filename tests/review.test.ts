@@ -106,6 +106,79 @@ describe("Review API", () => {
       expect(data.cards[0].front).toBe("Due Card");
     });
 
+    test("returns cards due earlier today (morning cards reviewed in evening)", async () => {
+      // Card due at 9 AM today
+      const morningCardId = createTestCard(db, deckId, "Morning Card", "Answer");
+      db.run(
+        "UPDATE cards SET due_date = date('now') || ' 09:00:00' WHERE id = ?",
+        [morningCardId]
+      );
+
+      const res = await authRequest(app, "GET", "/api/review/due", token);
+      expect(res.status).toBe(200);
+
+      const data = await res.json();
+      expect(data.cards.length).toBeGreaterThanOrEqual(1);
+      const morningCard = data.cards.find((c: any) => c.id === morningCardId);
+      expect(morningCard).toBeDefined();
+      expect(morningCard.front).toBe("Morning Card");
+    });
+
+    test("returns cards due later today (evening cards reviewed in morning)", async () => {
+      // Card due at 11:59 PM today
+      const eveningCardId = createTestCard(db, deckId, "Evening Card", "Answer");
+      db.run(
+        "UPDATE cards SET due_date = date('now') || ' 23:59:59' WHERE id = ?",
+        [eveningCardId]
+      );
+
+      const res = await authRequest(app, "GET", "/api/review/due", token);
+      expect(res.status).toBe(200);
+
+      const data = await res.json();
+      expect(data.cards.length).toBeGreaterThanOrEqual(1);
+      const eveningCard = data.cards.find((c: any) => c.id === eveningCardId);
+      expect(eveningCard).toBeDefined();
+      expect(eveningCard.front).toBe("Evening Card");
+    });
+
+    test("returns cards due at different times today", async () => {
+      // Create cards due at various times today
+      const card1Id = createTestCard(db, deckId, "Card 1 AM", "Answer");
+      const card2Id = createTestCard(db, deckId, "Card 2 PM", "Answer");
+      const card3Id = createTestCard(db, deckId, "Card 3 Evening", "Answer");
+
+      db.run("UPDATE cards SET due_date = date('now') || ' 08:00:00' WHERE id = ?", [card1Id]);
+      db.run("UPDATE cards SET due_date = date('now') || ' 14:30:00' WHERE id = ?", [card2Id]);
+      db.run("UPDATE cards SET due_date = date('now') || ' 22:00:00' WHERE id = ?", [card3Id]);
+
+      const res = await authRequest(app, "GET", "/api/review/due", token);
+      expect(res.status).toBe(200);
+
+      const data = await res.json();
+      expect(data.cards.length).toBeGreaterThanOrEqual(3);
+
+      const cardIds = data.cards.map((c: any) => c.id);
+      expect(cardIds).toContain(card1Id);
+      expect(cardIds).toContain(card2Id);
+      expect(cardIds).toContain(card3Id);
+    });
+
+    test("does not return cards due tomorrow", async () => {
+      const tomorrowCardId = createTestCard(db, deckId, "Tomorrow Card", "Answer");
+      db.run(
+        "UPDATE cards SET due_date = date('now', '+1 day') || ' 00:00:00' WHERE id = ?",
+        [tomorrowCardId]
+      );
+
+      const res = await authRequest(app, "GET", "/api/review/due", token);
+      expect(res.status).toBe(200);
+
+      const data = await res.json();
+      const tomorrowCard = data.cards.find((c: any) => c.id === tomorrowCardId);
+      expect(tomorrowCard).toBeUndefined();
+    });
+
     test("filters by deck when deckId provided", async () => {
       const deck2Id = createTestDeck(db, userId, "Second Deck");
 
@@ -163,6 +236,37 @@ describe("Review API", () => {
       expect(data.stats.due_now).toBe(3); // 2 new + 1 reviewed
       expect(data.stats.new_cards).toBe(3); // repetitions = 0
       expect(data.stats.review_cards).toBe(1); // repetitions > 0 and due
+    });
+
+    test("counts cards due at any time today as due_now", async () => {
+      // Cards due at different times today
+      const morningCardId = createTestCard(db, deckId, "Morning", "A");
+      db.run("UPDATE cards SET due_date = date('now') || ' 08:00:00' WHERE id = ?", [
+        morningCardId,
+      ]);
+
+      const afternoonCardId = createTestCard(db, deckId, "Afternoon", "A");
+      db.run("UPDATE cards SET due_date = date('now') || ' 14:00:00' WHERE id = ?", [
+        afternoonCardId,
+      ]);
+
+      const eveningCardId = createTestCard(db, deckId, "Evening", "A");
+      db.run("UPDATE cards SET due_date = date('now') || ' 23:59:59' WHERE id = ?", [
+        eveningCardId,
+      ]);
+
+      // Card due tomorrow
+      const tomorrowCardId = createTestCard(db, deckId, "Tomorrow", "A");
+      db.run("UPDATE cards SET due_date = date('now', '+1 day') || ' 08:00:00' WHERE id = ?", [
+        tomorrowCardId,
+      ]);
+
+      const res = await authRequest(app, "GET", "/api/review/stats", token);
+      expect(res.status).toBe(200);
+
+      const data = await res.json();
+      expect(data.stats.total_cards).toBe(4);
+      expect(data.stats.due_now).toBe(3); // All today's cards, not tomorrow's
     });
 
     test("filters stats by deck", async () => {

@@ -212,7 +212,7 @@ function createDeckRoutes(db: Database) {
         d.description,
         d.created_at,
         COUNT(c.id) as card_count,
-        COUNT(CASE WHEN c.due_date <= datetime('now') THEN 1 END) as due_count
+        COUNT(CASE WHEN date(c.due_date) <= date('now') THEN 1 END) as due_count
       FROM decks d
       LEFT JOIN cards c ON c.deck_id = d.id
       WHERE d.user_id = ?
@@ -252,7 +252,7 @@ function createDeckRoutes(db: Database) {
       SELECT
         d.*,
         COUNT(c.id) as card_count,
-        COUNT(CASE WHEN c.due_date <= datetime('now') THEN 1 END) as due_count
+        COUNT(CASE WHEN date(c.due_date) <= date('now') THEN 1 END) as due_count
       FROM decks d
       LEFT JOIN cards c ON c.deck_id = d.id
       WHERE d.id = ? AND d.user_id = ?
@@ -587,7 +587,7 @@ function createReviewRoutes(db: Database) {
       SELECT c.*, d.name as deck_name
       FROM cards c
       JOIN decks d ON c.deck_id = d.id
-      WHERE d.user_id = ? AND c.due_date <= datetime('now')
+      WHERE d.user_id = ? AND date(c.due_date) <= date('now')
     `;
     const params: (string | number)[] = [user.id];
 
@@ -624,9 +624,9 @@ function createReviewRoutes(db: Database) {
         `
       SELECT
         COUNT(*) as total_cards,
-        COUNT(CASE WHEN c.due_date <= datetime('now') THEN 1 END) as due_now,
+        COUNT(CASE WHEN date(c.due_date) <= date('now') THEN 1 END) as due_now,
         COUNT(CASE WHEN c.repetitions = 0 THEN 1 END) as new_cards,
-        COUNT(CASE WHEN c.repetitions > 0 AND c.due_date <= datetime('now') THEN 1 END) as review_cards
+        COUNT(CASE WHEN c.repetitions > 0 AND date(c.due_date) <= date('now') THEN 1 END) as review_cards
       ${baseQuery}
     `
       )
@@ -638,7 +638,7 @@ function createReviewRoutes(db: Database) {
       SELECT
         date(c.due_date) as date,
         COUNT(*) as count
-      ${baseQuery} AND c.due_date > datetime('now') AND c.due_date <= datetime('now', '+7 days')
+      ${baseQuery} AND date(c.due_date) > date('now') AND date(c.due_date) <= date('now', '+7 days')
       GROUP BY date(c.due_date)
       ORDER BY date(c.due_date)
     `
