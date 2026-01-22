@@ -18,7 +18,7 @@ decks.get("/", (c) => {
       d.description,
       d.created_at,
       COUNT(c.id) as card_count,
-      COUNT(CASE WHEN c.due_date <= datetime('now') THEN 1 END) as due_count
+      COUNT(CASE WHEN date(c.due_date) <= date('now') THEN 1 END) as due_count
     FROM decks d
     LEFT JOIN cards c ON c.deck_id = d.id
     WHERE d.user_id = ?
@@ -56,7 +56,7 @@ decks.get("/:id", (c) => {
     SELECT
       d.*,
       COUNT(c.id) as card_count,
-      COUNT(CASE WHEN c.due_date <= datetime('now') THEN 1 END) as due_count
+      COUNT(CASE WHEN date(c.due_date) <= date('now') THEN 1 END) as due_count
     FROM decks d
     LEFT JOIN cards c ON c.deck_id = d.id
     WHERE d.id = ? AND d.user_id = ?
