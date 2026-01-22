@@ -47,13 +47,14 @@ body {
   color: var(--text-primary);
   line-height: 1.6;
   min-height: 100vh;
-  transition: background-color 0.3s, color 0.3s;
+  transition: color 0.3s;
 }
 
 #app {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background: var(--bg-primary);
 }
 
 /* Typography */
